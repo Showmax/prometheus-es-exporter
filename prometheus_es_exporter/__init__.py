@@ -134,17 +134,20 @@ class ClusterHealthCollector(object):
 
 
 class NodesStatsCollector(object):
-    def __init__(self, es_client, timeout, metrics=None):
+    def __init__(self, es_client, timeout, metrics=None, fields=None, level=None, index_metric=None):
         self.metric_name_list = ['es', 'nodes_stats']
         self.description = 'Nodes Stats'
 
         self.es_client = es_client
         self.timeout = timeout
         self.metrics = metrics
+        self.fields = fields
+        self.level = level
+        self.index_metric = index_metric
 
     def collect(self):
         try:
-            response = self.es_client.nodes.stats(metric=self.metrics, request_timeout=self.timeout)
+            response = self.es_client.nodes.stats(metric=self.metrics, fields=self.fields, level=self.level, index_metric=self.index_metric, request_timeout=self.timeout)
 
             metrics = nodes_stats_parser.parse_response(response, self.metric_name_list)
         except ConnectionTimeout:
@@ -293,6 +296,12 @@ def main():
                         help='request timeout for nodes stats monitoring, in seconds. (default: 10)')
     parser.add_argument('--nodes-stats-metrics', type=nodes_stats_metrics_parser,
                         help='limit nodes stats to specific metrics. Metrics should be separated by commas e.g. indices,fs.')
+    parser.add_argument('--nodes-stats-level', default='node', choices=['node', 'indices', 'shards'],
+                        help='level of detail for node stats. (default: node)')
+    parser.add_argument('--nodes-stats-index-metrics', type=indices_stats_metrics_parser,
+                        help='limit the information returned for the `indices` metrics to the specified index metrics.')
+    parser.add_argument('--nodes-stats-fields', type=indices_stats_fields_parser,
+                        help='include fielddata info for specific fields. Fields should be separated by commas e.g. indices,fs. Use \'*\' for all.')
     parser.add_argument('--indices-stats-disable', action='store_true',
                         help='disable indices stats monitoring.')
     parser.add_argument('--indices-stats-timeout', type=float, default=10.0,
@@ -365,7 +374,10 @@ def main():
     if not args.nodes_stats_disable:
         REGISTRY.register(NodesStatsCollector(es_client,
                                               args.nodes_stats_timeout,
-                                              metrics=args.nodes_stats_metrics))
+                                              metrics=args.nodes_stats_metrics,
+                                              level=args.nodes_stats_level,
+                                              fields=args.nodes_stats_fields,
+                                              index_metric=args.nodes_stats_index_metrics))
 
     if not args.indices_stats_disable:
         parse_indices = args.indices_stats_mode == 'indices'
