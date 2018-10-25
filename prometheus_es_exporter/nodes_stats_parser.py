@@ -21,6 +21,8 @@ bucket_dict_keys = [
     'shards',
     'shard_id',
 ]
+# Specifies keys that will be ignored, 
+# when building the metric name
 excluded_metric_keys = [
     'shard_id',
 ]
@@ -48,7 +50,7 @@ def parse_block(block, metric=[], labels={}):
                     for n_key, n_value in value.items():
                         if isinstance(n_value, list):
                             if key == 'shards':
-                                n_list = [{"shard_id": d} for d in n_value]
+                                n_list = [{'shard_id': d} for d in n_value]
                                 for n_value in n_list:
                                     result.extend(parse_block(n_value, metric=metric + [key], labels=merge_dicts(labels, {singular_key: [n_key]})))
                         else:
