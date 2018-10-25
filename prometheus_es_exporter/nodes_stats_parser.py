@@ -10,7 +10,8 @@ excluded_keys = [
     'timestamp',
     'commit',
     'fielddata',
-    'is_custom_data_path',
+    'seq_no',
+    'shard_path',
     'attributes',
 ]
 bucket_dict_keys = [
