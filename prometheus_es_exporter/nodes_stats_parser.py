@@ -4,16 +4,27 @@ singular_forms = {
     'pools': 'pool',
     'collectors': 'collector',
     'buffer_pools': 'buffer_pool',
+    'shards': 'index',
 }
 excluded_keys = [
     'timestamp',
-    'indices',
+    'commit',
+    'fielddata',
+    'is_custom_data_path',
+    'attributes',
 ]
 bucket_dict_keys = [
     'pools',
     'collectors',
     'buffer_pools',
     'thread_pool',
+    'shards',
+    'shard_id',
+]
+# Specifies keys that will be ignored, 
+# when building the metric name
+excluded_metric_keys = [
+    'shard_id',
 ]
 bucket_list_keys = {
     'data': 'path',
@@ -37,7 +48,16 @@ def parse_block(block, metric=[], labels={}):
                     else:
                         singular_key = key
                     for n_key, n_value in value.items():
-                        result.extend(parse_block(n_value, metric=metric + [key], labels=merge_dicts(labels, {singular_key: [n_key]})))
+                        if isinstance(n_value, list):
+                            if key == 'shards':
+                                n_list = [{'shard_id': d} for d in n_value]
+                                for n_value in n_list:
+                                    result.extend(parse_block(n_value, metric=metric + [key], labels=merge_dicts(labels, {singular_key: [n_key]})))
+                        else:
+                            if key in excluded_metric_keys:
+                                result.extend(parse_block(n_value, metric=metric, labels=merge_dicts(labels, {singular_key: [n_key]})))
+                            else:
+                                result.extend(parse_block(n_value, metric=metric + [key], labels=merge_dicts(labels, {singular_key: [n_key]})))
                 else:
                     result.extend(parse_block(value, metric=metric + [key], labels=labels))
             elif isinstance(value, list) and key in bucket_list_keys:
